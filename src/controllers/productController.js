@@ -122,3 +122,10 @@ export const deleteProduct = async (req, res) => {
 
 }
 
+
+export const testing = async (req, res) => {
+
+    console.log("tesing")
+
+}
+
