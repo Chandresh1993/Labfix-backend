@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 3000;
 
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
 connectDB();
@@ -35,12 +36,12 @@ app.use(express.json()); // Parses JSON bodies
 
 
 // 💣 Rate Limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests, please try again later.'
-});
-app.use(limiter);
+// const limiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 100, // limit each IP to 100 requests per windowMs
+//     message: 'Too many requests, please try again later.'
+// });
+// app.use(limiter);
 
 
 // Use routes
@@ -54,13 +55,13 @@ app.use('/product', product)
 
 
 
-// app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
     setHeaders: (res, path) => {
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     }
 }));
+
 
 
 

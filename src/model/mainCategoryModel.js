@@ -7,9 +7,6 @@ const mainCategorySchema = new mongoose.Schema({
         unique: true,
         trim: true
     }
-}, {
-    timestamps: true,
-    id: false
 })
 
 mainCategorySchema.virtual("subCategories", {
