@@ -2,6 +2,8 @@ import Product from "../model/productModel.js"
 import { uploadImages } from '../config/multer.js';
 
 import subCategory from "../model/subCategoryModel.js";
+import fs from 'fs';
+import path from 'path';
 
 
 // Get Image URLs
@@ -103,9 +105,6 @@ export const getProductById = async (req, res) => {
 
 
 export const updateProduct = (req, res) => {
-
-    console.log("Raw body (buffer):", req.body);
-
     uploadImages(req, res, async (err) => {
         if (err) return res.status(400).json({ message: err.message });
 
@@ -128,6 +127,23 @@ export const updateProduct = (req, res) => {
 
             // Only update images if new ones were uploaded
             if (req.files && req.files.length > 0) {
+                const product = await Product.findById(req.params.id);
+
+                // Delete old images if they exist
+                if (product && product.images && product.images.length > 0) {
+                    product.images.forEach(imagePath => {
+                        const filename = imagePath.replace('/uploads/', '');
+                        const filePath = path.join(process.cwd(), 'public', 'uploads', filename);
+
+                        fs.unlink(filePath, (err) => {
+                            if (err) {
+                                console.error(`Failed to delete image file: ${filePath}`, err.message);
+                            }
+                        });
+                    });
+                }
+
+                // Set new image paths
                 updatedFields.images = req.files.map(file => `/uploads/${file.filename}`);
             }
 
@@ -150,21 +166,33 @@ export const updateProduct = (req, res) => {
 };
 
 
+
 export const deleteProduct = async (req, res) => {
-
     try {
+        const product = await Product.findByIdAndDelete(req.params.id);
+        if (!product) return res.status(404).json({ message: "Product not found" });
 
-        const deleteProduct = await Product.findByIdAndDelete(req.params.id)
-        if (!deleteProduct) return res.status(404).json({ message: "Product not found" })
+        // Delete associated image files
+        if (product.images && product.images.length > 0) {
+            product.images.forEach(imagePath => {
+                const filename = imagePath.replace('/uploads/', '');
+                const filePath = path.join(process.cwd(), 'public', 'uploads', filename);
 
-        res.status(200).json({ message: " Product Deleted", deleteProduct })
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.error(`Failed to delete image file: ${filePath}`, err.message);
+                    }
+                });
+            });
+        }
+
+        res.status(200).json({ message: "Product deleted", product });
 
     } catch (error) {
-        res.status(500).json({ message: " server Error" })
-
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
     }
-
-}
+};
 
 
 

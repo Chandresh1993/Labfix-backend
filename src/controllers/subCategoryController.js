@@ -60,6 +60,8 @@ export const getAllSubCategoriesById = async (req, res) => {
 
 export const updateCategory = async (req, res) => {
 
+
+
     try {
 
         const updateSubCategory = await subCategory.findByIdAndUpdate(
