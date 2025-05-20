@@ -4,6 +4,7 @@ import { uploadImages } from '../config/multer.js';
 import subCategory from "../model/subCategoryModel.js";
 import fs from 'fs';
 import path from 'path';
+import SubCategory from '../model/subCategoryModel.js';
 
 
 // Get Image URLs
@@ -49,25 +50,74 @@ export const createProduct = (req, res) => {
     });
 };
 
+
 export const getAllProduct = async (req, res) => {
     try {
-        const products = await Product.find().populate('subCategoryID', "name");
+        const page = parseInt(req.query.page) || 1;    // Current page number
+        const limit = parseInt(req.query.limit) || 10; // Items per page
+        const skip = (page - 1) * limit;
 
-        // Add full URL to each image
+        const subCategoryName = req.query.subCategoryName;
+        const search = req.query.search || ''; // Get search text
+
+        let filter = {};
+
+        // Search filter for name or mainHeading (case-insensitive)
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                // { mainHeading: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // Handle subcategory filter
+        if (subCategoryName) {
+            const subCategory = await SubCategory.findOne({ name: new RegExp(`^${subCategoryName}$`, 'i') });
+
+            if (subCategory) {
+                filter.subCategoryID = subCategory._id;
+            } else {
+                // No matching subcategory; return empty
+                return res.status(200).json({
+                    page,
+                    limit,
+                    total: 0,
+                    totalPages: 0,
+                    products: [],
+                });
+            }
+        }
+
+        const total = await Product.countDocuments(filter);
+
+        const products = await Product.find(filter)
+            .populate('subCategoryID', 'name')
+            .skip(skip)
+            .limit(limit);
+
         const host = req.protocol + '://' + req.get('host');
-        const updatedProducts = products.map(product => {
 
-            return {
-                ...product._doc,
-                images: product.images.map(img => `${host}${img}`),
-            };
+        const updatedProducts = products.map(product => ({
+            ...product._doc,
+            images: product.images.map(img =>
+                img.startsWith('http') ? img : `${host}${img}`
+            ),
+        }));
+
+        res.status(200).json({
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            products: updatedProducts,
         });
-
-        res.status(200).json(updatedProducts);
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+
 
 
 export const getProductById = async (req, res) => {

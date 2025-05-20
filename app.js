@@ -29,7 +29,9 @@ app.use(express.urlencoded({ extended: true }));
 connectDB();
 
 
-app.use(helmet()); // Adds secure HTTP headers
+app.use(helmet({
+    crossOriginResourcePolicy: false
+}));// Adds secure HTTP headers
 app.use(cors()); // Enables CORS
 app.use(express.json()); // Parses JSON bodies
 
@@ -59,6 +61,7 @@ app.use('/product', product)
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
     setHeaders: (res, path) => {
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Access-Control-Allow-Origin', '*');
     }
 }));
 
