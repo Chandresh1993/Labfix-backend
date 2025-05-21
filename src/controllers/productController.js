@@ -201,6 +201,15 @@ export const updateProduct = (req, res) => {
                 quantity, description, howToInstallAndTips, subCategoryID
             } = req.body;
 
+
+            const subCategory = await SubCategory.findById(subCategoryID)
+
+            if (!subCategory) {
+                return res.status(404).json({ message: "Subcategory not found" });
+            }
+
+            const mainCategory = subCategory.mainCategoryId?._id || null;
+
             const updatedFields = {
                 mainHeading,
                 name,
@@ -210,6 +219,7 @@ export const updateProduct = (req, res) => {
                 description,
                 howToInstallAndTips,
                 subCategoryID,
+                mainCategory,
             };
 
             // Only update images if new ones were uploaded
