@@ -17,17 +17,43 @@ const getImageUrls = (files) => {
 // Create Product With Images
 export const createProduct = (req, res) => {
     uploadImages(req, res, async (err) => {
-        if (err) return res.status(400).json({ message: err.message });
+        if (err) {
+            return res.status(400).json({ message: `Image Upload Error: ${err.message}` });
+        }
 
         const {
-            mainHeading, name, price, discountPrice,
-            quantity, description, howToInstallAndTips, subCategoryID
+            mainHeading,
+            name,
+            price,
+            discountPrice,
+            quantity,
+            description,
+            howToInstallAndTips,
+            subCategoryID
         } = req.body;
 
         try {
-            const existingProduct = await Product.findOne({ mainHeading });
-            if (existingProduct) return res.status(400).json({ message: "MainHeading already exists" });
+            // --- Validate Required Fields ---
+            if (!mainHeading || !name || !price || !quantity || !subCategoryID) {
+                return res.status(400).json({ message: "Missing required fields" });
+            }
 
+            // --- Check for Duplicate Product ---
+            const existingProduct = await Product.findOne({ mainHeading });
+            if (existingProduct) {
+                return res.status(400).json({ message: "Product with this main heading already exists" });
+            }
+
+            // --- Fetch SubCategory and MainCategory ---
+            const subCategory = await SubCategory.findById(subCategoryID)
+
+            if (!subCategory) {
+                return res.status(404).json({ message: "Subcategory not found" });
+            }
+
+            const mainCategory = subCategory.mainCategoryId?._id || null;
+
+            // --- Create and Save New Product ---
             const newProduct = new Product({
                 mainHeading,
                 name,
@@ -37,14 +63,18 @@ export const createProduct = (req, res) => {
                 description,
                 howToInstallAndTips,
                 subCategoryID,
-                images: getImageUrls(req.files)
+                mainCategory,
+                images: getImageUrls(req.files),
             });
 
             const savedProduct = await newProduct.save();
-            res.status(201).json({ message: "Product created successfully", product: savedProduct });
+
+            res.status(201).json(
+                savedProduct
+            );
 
         } catch (error) {
-            console.error(error);
+            console.error("Error while creating product:", error);
             res.status(500).json({ message: "Server error while creating product" });
         }
     });
@@ -53,31 +83,33 @@ export const createProduct = (req, res) => {
 
 export const getAllProduct = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;    // Current page number
-        const limit = parseInt(req.query.limit) || 10; // Items per page
+        // --- Pagination Parameters ---
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
+        // --- Query Parameters ---
+        const searchQuery = req.query.search || '';
         const subCategoryName = req.query.subCategoryName;
-        const search = req.query.search || ''; // Get search text
 
-        let filter = {};
+        // --- Filter Construction ---
+        const filter = {};
 
-        // Search filter for name or mainHeading (case-insensitive)
-        if (search) {
+        // Apply search filter (case-insensitive match on 'name')
+        if (searchQuery) {
             filter.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                // { mainHeading: { $regex: search, $options: 'i' } }
+                { name: { $regex: searchQuery, $options: 'i' } },
+                // You can extend this array to include other searchable fields
             ];
         }
 
-        // Handle subcategory filter
+        // Apply subcategory filter (case-insensitive match)
         if (subCategoryName) {
-            const subCategory = await SubCategory.findOne({ name: new RegExp(`^${subCategoryName}$`, 'i') });
+            const subCategory = await SubCategory.findOne({
+                name: new RegExp(`^${subCategoryName}$`, 'i'),
+            });
 
-            if (subCategory) {
-                filter.subCategoryID = subCategory._id;
-            } else {
-                // No matching subcategory; return empty
+            if (!subCategory) {
                 return res.status(200).json({
                     page,
                     limit,
@@ -86,44 +118,49 @@ export const getAllProduct = async (req, res) => {
                     products: [],
                 });
             }
+
+            filter.subCategoryID = subCategory._id;
         }
 
+        // --- Query the Products ---
         const total = await Product.countDocuments(filter);
 
         const products = await Product.find(filter)
             .populate('subCategoryID', 'name')
+            .populate('mainCategory', 'name')
             .skip(skip)
             .limit(limit);
 
-        const host = req.protocol + '://' + req.get('host');
+        const hostURL = `${req.protocol}://${req.get('host')}`;
 
+        // --- Format Image URLs ---
         const updatedProducts = products.map(product => ({
             ...product._doc,
             images: product.images.map(img =>
-                img.startsWith('http') ? img : `${host}${img}`
+                img.startsWith('http') ? img : `${hostURL}${img}`
             ),
         }));
 
-        res.status(200).json({
+        // --- Send Response ---
+        return res.status(200).json({
             page,
             limit,
             total,
             totalPages: Math.ceil(total / limit),
             products: updatedProducts,
         });
+
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        console.error('Error fetching products:', error);
+        return res.status(500).json({ message: 'Server Error' });
     }
 };
 
 
 
 
+
 export const getProductById = async (req, res) => {
-
-
-
 
     try {
         const product = await Product.findById(req.params.id).populate("subCategoryID");

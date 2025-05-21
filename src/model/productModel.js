@@ -47,7 +47,14 @@ const productSchema = new mongoose.Schema({
         type: Schema.Types.ObjectId,
         ref: "subCategory",
         required: true
+    },
+    mainCategory: {
+        type: Schema.Types.ObjectId,
+        ref: "Category",
+        required: true
+
     }
+
 
 
 
