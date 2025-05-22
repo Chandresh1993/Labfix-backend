@@ -91,6 +91,7 @@ export const getAllProduct = async (req, res) => {
         // --- Query Parameters ---
         const searchQuery = req.query.search || '';
         const subCategoryName = req.query.subCategoryName;
+        const mainCategoryId = req.query.mainCategoryId;
 
         // --- Filter Construction ---
         const filter = {};
@@ -120,6 +121,10 @@ export const getAllProduct = async (req, res) => {
             }
 
             filter.subCategoryID = subCategory._id;
+        }
+
+        if (mainCategoryId) {
+            filter.mainCategory = mainCategoryId;
         }
 
         // --- Query the Products ---
