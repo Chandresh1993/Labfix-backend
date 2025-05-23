@@ -1,5 +1,6 @@
 
 import subCategory from "../model/subCategoryModel.js"
+import Product from "../model/productModel.js";
 
 
 export const createSubCategory = async (req, res) => {
@@ -85,21 +86,31 @@ export const updateCategory = async (req, res) => {
 
 
 
+
+
 export const deletesubCategory = async (req, res) => {
     try {
 
+
         const deletesubCategory = await subCategory.findByIdAndDelete(req.params.id);
-        if (!deletesubCategory) return res.status(404).json({ message: "SubCategory not found" })
+        if (!deletesubCategory) {
+            return res.status(404).json({ message: "SubCategory not found" });
+        }
+
+
+
+
+        // Delete linked products
+        await Product.deleteMany({ subCategoryID: req.params.id });
+
 
         res.status(200).json({
-            message: "subCategory Deletd",
+            message: "SubCategory and linked products deleted",
             deletesubCategory
-        })
-
+        });
 
     } catch (error) {
-        res.status(500).json({ message: "server Error" })
 
+        res.status(500).json({ message: "Server Error" });
     }
-
-}
+};
