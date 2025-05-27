@@ -134,7 +134,7 @@ export const getAllProduct = async (req, res) => {
             .populate('subCategoryID', 'name')
             .populate('mainCategory', 'name')
             .skip(skip)
-            .sort({ createdAt: -1 })
+            .sort({ createdAt: 1 })
             .limit(limit);
 
         const hostURL = `${req.protocol}://${req.get('host')}`;
