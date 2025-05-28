@@ -29,12 +29,13 @@ export const createProduct = (req, res) => {
             quantity,
             description,
             howToInstallAndTips,
-            subCategoryID
+            subCategoryID,
+            year
         } = req.body;
 
         try {
             // --- Validate Required Fields ---
-            if (!mainHeading || !name || !price || !quantity || !subCategoryID) {
+            if (!mainHeading || !name || !price || !quantity || !subCategoryID || !year || !description) {
                 return res.status(400).json({ message: "Missing required fields" });
             }
 
@@ -64,6 +65,7 @@ export const createProduct = (req, res) => {
                 howToInstallAndTips,
                 subCategoryID,
                 mainCategory,
+                year,
                 images: getImageUrls(req.files),
             });
 
@@ -204,7 +206,7 @@ export const updateProduct = (req, res) => {
         try {
             const {
                 mainHeading, name, price, discountPrice,
-                quantity, description, howToInstallAndTips, subCategoryID
+                quantity, description, howToInstallAndTips, subCategoryID, year
             } = req.body;
 
 
@@ -226,6 +228,7 @@ export const updateProduct = (req, res) => {
                 howToInstallAndTips,
                 subCategoryID,
                 mainCategory,
+                year
             };
 
             // Only update images if new ones were uploaded

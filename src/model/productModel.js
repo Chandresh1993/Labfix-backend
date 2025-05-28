@@ -40,6 +40,11 @@ const productSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    year: {
+        type: String,
+        trim: true
+    },
+
     images: [{
         type: String, // This will store the file paths
     }],
@@ -53,7 +58,7 @@ const productSchema = new mongoose.Schema({
         ref: "Category",
         required: true
 
-    }
+    },
 
 
 
