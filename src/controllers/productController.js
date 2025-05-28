@@ -102,6 +102,7 @@ export const getAllProduct = async (req, res) => {
         if (searchQuery) {
             filter.$or = [
                 { name: { $regex: searchQuery, $options: 'i' } },
+                { year: { $regex: searchQuery, $options: 'i' } }
                 // You can extend this array to include other searchable fields
             ];
         }
