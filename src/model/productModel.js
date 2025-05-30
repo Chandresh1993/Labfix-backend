@@ -45,9 +45,18 @@ const productSchema = new mongoose.Schema({
         trim: true
     },
 
-    images: [{
-        type: String, // This will store the file paths
-    }],
+    images: [
+        {
+            url: {
+                type: String,
+                required: true
+            },
+            public_id: {
+                type: String,
+                required: true
+            }
+        }
+    ],
     subCategoryID: {
         type: Schema.Types.ObjectId,
         ref: "subCategory",
