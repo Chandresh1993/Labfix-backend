@@ -72,6 +72,8 @@ export const createProduct = (req, res) => {
                 images
             });
 
+
+
             const savedProduct = await newProduct.save();
 
             res.status(201).json(
@@ -243,6 +245,8 @@ export const updateProduct = (req, res) => {
                                 await cloudinary.uploader.destroy(image.public_id);
                             } catch (err) {
                                 console.error("Error deleting from Cloudinary:", err.message);
+
+
                             }
                         }
                     }
