@@ -3,6 +3,7 @@ import { upload } from '../config/cloudinary.js'
 import subCategory from "../model/subCategoryModel.js";
 import SubCategory from '../model/subCategoryModel.js';
 import { cloudinary } from '../config/cloudinary.js';
+import { error } from "console";
 
 
 
@@ -97,8 +98,9 @@ export const getAllProduct = async (req, res) => {
 
         // --- Query Parameters ---
         const searchQuery = req.query.search || '';
-        const subCategoryName = req.query.subCategoryName;
+        const subCategoryId = req.query.subCategoryId;
         const mainCategoryId = req.query.mainCategoryId;
+
 
         // --- Filter Construction ---
         const filter = {};
@@ -113,21 +115,14 @@ export const getAllProduct = async (req, res) => {
         }
 
         // Apply subcategory filter (case-insensitive match)
-        if (subCategoryName) {
-            const subCategory = await SubCategory.findOne({
-                name: new RegExp(`^${subCategoryName}$`, 'i'),
-            });
+        if (subCategoryId) {
+            const subCategory = await SubCategory.findById(subCategoryId);
 
             if (!subCategory) {
-                return res.status(200).json({
-                    page,
-                    limit,
-                    total: 0,
-                    totalPages: 0,
-                    products: [],
-                });
-            }
+                return res.status(404).json({ message: "subCategory not found" })
 
+
+            }
             filter.subCategoryID = subCategory._id;
         }
 
