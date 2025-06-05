@@ -100,6 +100,7 @@ export const getAllProduct = async (req, res) => {
         const searchQuery = req.query.search || '';
         const subCategoryId = req.query.subCategoryId;
         const mainCategoryId = req.query.mainCategoryId;
+        const productId = req.query.productId;
 
 
         // --- Filter Construction ---
@@ -128,6 +129,16 @@ export const getAllProduct = async (req, res) => {
 
         if (mainCategoryId) {
             filter.mainCategory = mainCategoryId;
+        }
+
+        if (productId) {
+
+            const productIdFind = await Product.findById(productId)
+            if (!productIdFind) {
+                return res.status(404).json({ message: "product not found" })
+            }
+            filter._id = productIdFind._id
+
         }
 
         // --- Query the Products ---
