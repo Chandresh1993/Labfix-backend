@@ -2,11 +2,12 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { connectDB } from './db.js';
 import userRoutes from './src/routes/userRoutes.js';
+import firstCategory from "./src/routes/firstcategoryRoutes.js"
 import mainCatgeory from "./src/routes/mainCategoryRoutes.js"
 import subCategory from "./src/routes/subCategoryRoutes.js"
 import helmet from 'helmet';
 import cors from 'cors';
-import rateLimit from 'express-rate-limit';
+
 import product from './src/routes/productRoutes.js'
 import path from 'path';
 
@@ -48,6 +49,8 @@ app.use(express.json()); // Parses JSON bodies
 
 // Use routes
 app.use('/users', userRoutes);
+
+app.use('/firstCatgeory', firstCategory)
 
 app.use('/mainCategory', mainCatgeory)
 

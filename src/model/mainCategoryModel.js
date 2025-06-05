@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const mainCategorySchema = new mongoose.Schema({
     name: {
@@ -6,6 +6,11 @@ const mainCategorySchema = new mongoose.Schema({
         required: true,
         unique: true,
         trim: true
+    },
+    firstCategoryId: {
+        type: Schema.Types.ObjectId,
+        ref: "FirstCategory",
+        required: true
     }
 })
 

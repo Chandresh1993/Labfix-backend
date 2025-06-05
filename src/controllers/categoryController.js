@@ -3,6 +3,7 @@ import Category from "../model/mainCategoryModel.js";
 export const createCategory = async (req, res) => {
 
     const { name } = req.body;
+    const { firstCategoryId } = req.body;
 
     const lowerCaseName = name.toLowerCase();
 
@@ -17,11 +18,19 @@ export const createCategory = async (req, res) => {
         if (existing) return res.status(400).json({ message: "Category already exsits" });
 
 
-        const category = new Category({ name: lowerCaseName });
-        await category.save();
 
 
-        res.status(201).json({ message: "Category created", category });
+        const category = new Category({ name: lowerCaseName, firstCategoryId });
+        const data = await category.save();
+
+        const ChangeDta = {
+            id: data._id,
+            name: data.name,
+            firstCategoryId: data.firstCategoryId,
+        };
+
+
+        res.status(201).json(ChangeDta);
 
     } catch (error) {
         res.status(500).json({ message: "Server Error" })
