@@ -63,14 +63,30 @@ export const firstGetAllCategories = async (req, res) => {
 export const firstGetAllCategoriesById = async (req, res) => {
 
     try {
+        const { id } = req.params;
 
-        const category = await FirstCategory.findById(req.params.id)
+        const firstCategory = await FirstCategory.findById(id).lean();
 
-        if (!category) return res.status(404).json({ message: "first Category is not  found" })
+        if (!firstCategory) {
+            return res.status(404).json({ message: "First category not found" });
+        }
 
-        res.status(200).json(category);
+        const mainCategories = await Category.find({ firstCategoryId: id })
+            .populate({
+                path: 'subCategories',
+                model: 'subCategory'
+            })
+            .lean();
+
+        const result = {
+            ...firstCategory,
+            mainCategories
+        };
+
+        res.status(200).json(result);
 
     } catch (error) {
+        console.error("Fetch by ID error:", error);
         res.status(500).json({ message: "Server Error" })
 
     }
