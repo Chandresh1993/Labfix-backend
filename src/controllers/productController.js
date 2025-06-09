@@ -4,6 +4,7 @@ import subCategory from "../model/subCategoryModel.js";
 import SubCategory from '../model/subCategoryModel.js';
 import { cloudinary } from '../config/cloudinary.js';
 import { error } from "console";
+import Category from "../model/mainCategoryModel.js";
 
 
 
@@ -28,37 +29,50 @@ export const createProduct = (req, res) => {
             year
         } = req.body;
 
-        try {
-            // --- Validate Required Fields ---
-            if (!mainHeading || !name || !price || !quantity || !subCategoryID || !year || !description) {
-                return res.status(400).json({ message: "Missing required fields" });
-            }
+        // --- Quick Validation (Synchronous) ---
+        if (!mainHeading || !name || !price || !quantity || !subCategoryID || !year || !description) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
 
-            // --- Check for Duplicate Product ---
-            const existingProduct = await Product.findOne({ mainHeading });
+        try {
+            // --- Parallel Fetch: Product & SubCategory ---
+            const [existingProduct, subCategory] = await Promise.all([
+                Product.findOne({ mainHeading }),
+                SubCategory.findById(subCategoryID)
+            ]);
+
             if (existingProduct) {
                 return res.status(400).json({ message: "Product with this main heading already exists" });
             }
-
-            // --- Fetch SubCategory and MainCategory ---
-            const subCategory = await SubCategory.findById(subCategoryID)
 
             if (!subCategory) {
                 return res.status(404).json({ message: "Subcategory not found" });
             }
 
-            const mainCategory = subCategory.mainCategoryId?._id || null;
+            const mainCategory = subCategory.mainCategoryId?._id || subCategory.mainCategoryId || null;
 
+            if (!mainCategory) {
+                return res.status(400).json({ message: "Main category not found in subcategory" });
+            }
 
+            // --- Fetch Category ---
+            const categoryData = await Category.findById(mainCategory);
+            if (!categoryData) {
+                return res.status(404).json({ message: "Main category not found in category collection" });
+            }
 
+            const FirstCategory = categoryData.firstCategoryId || null;
+            if (!FirstCategory) {
+                return res.status(404).json({ message: "First category not found in category" });
+            }
+
+            // --- Process Images ---
             const images = req.files.map(file => ({
                 url: file.path,
                 public_id: file.filename
             }));
 
-
-
-            // --- Create and Save New Product ---
+            // --- Create and Save Product ---
             const newProduct = new Product({
                 mainHeading,
                 name,
@@ -69,24 +83,21 @@ export const createProduct = (req, res) => {
                 howToInstallAndTips,
                 subCategoryID,
                 mainCategory,
+                FirstCategory,
                 year,
                 images
             });
 
-
-
             const savedProduct = await newProduct.save();
-
-            res.status(201).json(
-                savedProduct
-            );
+            return res.status(201).json(savedProduct);
 
         } catch (error) {
-
-            res.status(500).json({ message: "Server error while creating product" });
+            console.error(error);
+            return res.status(500).json({ message: "Server error while creating product" });
         }
     });
 };
+
 
 
 export const getAllProduct = async (req, res) => {
@@ -101,6 +112,7 @@ export const getAllProduct = async (req, res) => {
         const subCategoryId = req.query.subCategoryId;
         const mainCategoryId = req.query.mainCategoryId;
         const productId = req.query.productId;
+        const firstCategoryId = req.query.firstCategoryId;
 
 
         // --- Filter Construction ---
@@ -131,6 +143,11 @@ export const getAllProduct = async (req, res) => {
             filter.mainCategory = mainCategoryId;
         }
 
+        // Apply first category filter ✅
+        if (firstCategoryId) {
+            filter.FirstCategory = firstCategoryId;
+        }
+
         if (productId) {
 
             const productIdFind = await Product.findById(productId)
@@ -147,6 +164,7 @@ export const getAllProduct = async (req, res) => {
         const products = await Product.find(filter)
             .populate('subCategoryID', 'name')
             .populate('mainCategory', 'name')
+            .populate('FirstCategory', 'name')
             .skip(skip)
             .sort({ createdAt: -1 })
             .limit(limit);
@@ -209,23 +227,46 @@ export const getProductById = async (req, res) => {
 
 export const updateProduct = (req, res) => {
     upload.array('images')(req, res, async (err) => {
-        if (err) return res.status(400).json({ message: err.message });
+        if (err) return res.status(400).json({ message: `Upload error: ${err.message}` });
 
         try {
             const {
-                mainHeading, name, price, discountPrice,
-                quantity, description, howToInstallAndTips, subCategoryID, year
+                mainHeading,
+                name,
+                price,
+                discountPrice,
+                quantity,
+                description,
+                howToInstallAndTips,
+                subCategoryID,
+                year
             } = req.body;
 
+            // Validate required fields
+            if (!mainHeading || !name || !price || !quantity || !subCategoryID || !year || !description) {
+                return res.status(400).json({ message: "Missing required fields" });
+            }
 
-            const subCategory = await SubCategory.findById(subCategoryID)
-
+            // Find SubCategory and validate
+            const subCategory = await SubCategory.findById(subCategoryID);
             if (!subCategory) {
                 return res.status(404).json({ message: "Subcategory not found" });
             }
 
-            const mainCategory = subCategory.mainCategoryId?._id || null;
+            // Get Main Category ID
+            const mainCategory = subCategory.mainCategoryId?._id || subCategory.mainCategoryId || null;
+            if (!mainCategory) {
+                return res.status(400).json({ message: "Main category not found in subcategory" });
+            }
 
+            // Get First Category ID
+            const categoryData = await Category.findById(mainCategory);
+            if (!categoryData || !categoryData.firstCategoryId) {
+                return res.status(400).json({ message: "First category not found in main category" });
+            }
+            const FirstCategory = categoryData.firstCategoryId;
+
+            // Prepare updated fields
             const updatedFields = {
                 mainHeading,
                 name,
@@ -236,40 +277,35 @@ export const updateProduct = (req, res) => {
                 howToInstallAndTips,
                 subCategoryID,
                 mainCategory,
+                FirstCategory,
                 year
             };
 
+            // If new images are uploaded, delete old ones
             if (req.files && req.files.length > 0) {
-                const product = await Product.findById(req.params.id);
-
-                // Delete old images from Cloudinary
-                if (product && product.images && product.images.length > 0) {
-                    for (const image of product.images) {
-                        // Assume each image has { url, public_id }
+                const existingProduct = await Product.findById(req.params.id);
+                if (existingProduct && existingProduct.images && existingProduct.images.length > 0) {
+                    for (const image of existingProduct.images) {
                         if (image.public_id) {
                             try {
                                 await cloudinary.uploader.destroy(image.public_id);
                             } catch (err) {
-                                console.error("Error deleting from Cloudinary:", err.message);
-
-
+                                console.error("Cloudinary delete error:", err.message);
                             }
                         }
                     }
                 }
 
-
-                // Upload new images to Cloudinary
-                const uploadedImages = req.files.map(file => ({
-                    url: file.path, // already a secure Cloudinary URL
-                    public_id: file.filename // this is Cloudinary's public_id
+                // Prepare new image data
+                const newImages = req.files.map(file => ({
+                    url: file.path,
+                    public_id: file.filename
                 }));
 
-                updatedFields.images = uploadedImages;
-
+                updatedFields.images = newImages;
             }
 
-
+            // Update the product
             const updatedProduct = await Product.findByIdAndUpdate(
                 req.params.id,
                 updatedFields,
@@ -280,13 +316,15 @@ export const updateProduct = (req, res) => {
                 return res.status(404).json({ message: "Product not found" });
             }
 
-            res.status(200).json({ message: "Product updated", updatedProduct });
+            res.status(200).json({ message: "Product updated successfully", updatedProduct });
+
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: "Server Error" });
+            console.error("Update Error:", error);
+            res.status(500).json({ message: "Server Error while updating product" });
         }
     });
 };
+
 
 
 

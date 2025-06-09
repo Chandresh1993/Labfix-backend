@@ -68,6 +68,11 @@ const productSchema = new mongoose.Schema({
         required: true
 
     },
+    FirstCategory: {
+        type: Schema.Types.ObjectId,
+        ref: "FirstCategory",
+        required: true
+    },
 
 
 
