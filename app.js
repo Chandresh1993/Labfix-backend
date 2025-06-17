@@ -48,7 +48,7 @@ app.use(express.json()); // Parses JSON bodies
 
 
 // Use routes
-// app.use('/users', userRoutes);
+app.use('/users', userRoutes);
 
 app.use('/firstCatgeory', firstCategory)
 
