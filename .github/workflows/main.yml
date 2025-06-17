@@ -29,8 +29,8 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: Labfix                # ✅ Your Elastic Beanstalk Application Name
-          environment_name: Lapfix-env            # ✅ Your Elastic Beanstalk Environment Name
+          application_name: labfix                # ✅ Your Elastic Beanstalk Application Name
+          environment_name: lapfix-env            # ✅ Your Elastic Beanstalk Environment Name
           version_label: ${{ github.run_number }}
           region: ap-south-1                      # ✅ Your AWS Region (Mumbai)
           deployment_package: app.zip
