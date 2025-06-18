@@ -5,6 +5,7 @@ import SubCategory from '../model/subCategoryModel.js';
 import { cloudinary } from '../config/cloudinary.js';
 import { error } from "console";
 import Category from "../model/mainCategoryModel.js";
+import RecentlyViewed from '../model/recentlyViewedModel.js';
 
 
 
@@ -30,20 +31,15 @@ export const createProduct = (req, res) => {
         } = req.body;
 
         // --- Quick Validation (Synchronous) ---
-        if (!mainHeading || !name || !price || !quantity || !subCategoryID || !year || !description) {
+        if (!mainHeading || !name || !price || !quantity || !subCategoryID || !description) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
         try {
             // --- Parallel Fetch: Product & SubCategory ---
-            const [existingProduct, subCategory] = await Promise.all([
-                Product.findOne({ mainHeading }),
+            const [subCategory] = await Promise.all([
                 SubCategory.findById(subCategoryID)
             ]);
-
-            if (existingProduct) {
-                return res.status(400).json({ message: "Product with this main heading already exists" });
-            }
 
             if (!subCategory) {
                 return res.status(404).json({ message: "Subcategory not found" });
@@ -214,6 +210,19 @@ export const getProductById = async (req, res) => {
         }
 
 
+        // Save product as recently viewed
+        const existingEntry = await RecentlyViewed.findOne({ productId: product._id });
+
+        if (!existingEntry) {
+            // Only save if not already present
+            await RecentlyViewed.create({ productId: product._id });
+        } else {
+            // Update viewedAt to current time
+            existingEntry.viewedAt = new Date();
+            await existingEntry.save();
+        }
+
+
 
         res.status(200).json(product);
 
@@ -239,11 +248,10 @@ export const updateProduct = (req, res) => {
                 description,
                 howToInstallAndTips,
                 subCategoryID,
-                year
             } = req.body;
 
             // Validate required fields
-            if (!mainHeading || !name || !price || !quantity || !subCategoryID || !year || !description) {
+            if (!mainHeading || !name || !price || !quantity || !subCategoryID || !description) {
                 return res.status(400).json({ message: "Missing required fields" });
             }
 
@@ -397,6 +405,31 @@ export const getProductsBySubCategory = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
+
+export const getRecentlyViewedProducts = async (req, res) => {
+
+
+
+    try {
+        const recentlyViewed = await RecentlyViewed.find()
+            .sort({ viewedAt: -1 }) // Most recent first
+            .limit(4) // Change limit if you want more or less
+
+            .populate('productId');
+
+        const products = recentlyViewed.map(item => ({
+            ...item.productId._doc,
+            viewedAt: item.viewedAt
+        }));
+
+        res.status(200).json(products);
+
+    } catch (error) {
+        console.error("Server Error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
 
 
 

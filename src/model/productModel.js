@@ -5,7 +5,6 @@ const productSchema = new mongoose.Schema({
     mainHeading: {
         type: String,
         required: true,
-        unique: true,
         trim: true
     },
 

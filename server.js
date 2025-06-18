@@ -74,7 +74,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
 
 
 app.get('/', (req, res) => {
-    res.send('✅ Express connected with MongoDB Atlas using import/export!');
+    res.send('Hello from Elastic Beanstalk Node.js app!');
 });
 
 app.listen(PORT, () => {
