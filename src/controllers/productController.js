@@ -248,6 +248,7 @@ export const updateProduct = (req, res) => {
                 description,
                 howToInstallAndTips,
                 subCategoryID,
+                year
             } = req.body;
 
             // Validate required fields
