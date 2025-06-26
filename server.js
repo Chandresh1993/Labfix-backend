@@ -33,7 +33,28 @@ connectDB();
 app.use(helmet({
     crossOriginResourcePolicy: false
 }));// Adds secure HTTP headers
-app.use(cors()); // Enables CORS
+// app.use(cors({
+//     origin: [
+//         'https://lapfixindia.com',
+//         'https://www.lapfixindia.com',
+//         'https://lapfixadmin.netlify.app',
+//         'http://localhost:3000'
+//     ],
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//     allowedHeaders: ['Authorization', 'Content-Type'],
+// }));
+
+app.use(cors({
+    origin: '*', // Temporarily allow all origins for debugging
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+}));
+
+
+
+
+
+
 app.use(express.json()); // Parses JSON bodies
 
 
@@ -75,6 +96,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
 
 app.get('/', (req, res) => {
     res.send('Hello from Elastic Beanstalk Node.js app!');
+});
+
+app.use((req, res) => {
+    res.status(404).json({ message: "Route not found" });
 });
 
 app.listen(PORT, () => {
