@@ -46,7 +46,7 @@ app.use(helmet({
 
 app.use(cors({
     origin: '*', // Temporarily allow all origins for debugging
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type'],
 }));
 

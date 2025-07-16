@@ -1,4 +1,6 @@
 import Category from "../model/mainCategoryModel.js";
+import SubCategory from "../model/subCategoryModel.js";
+import Product from "../model/productModel.js";
 
 export const createCategory = async (req, res) => {
 
@@ -100,18 +102,31 @@ export const updateCategory = async (req, res) => {
 
 export const deletecategory = async (req, res) => {
     try {
-
+        // Step 1: Delete the MainCategory
         const deletedCategory = await Category.findByIdAndDelete(req.params.id);
-        if (!deletedCategory) return res.status(404).json({ message: "Category not found" });
+        if (!deletedCategory) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        // Step 2: Find all SubCategories linked to this MainCategory
+        const subCategories = await SubCategory.find({ mainCategoryId: deletedCategory._id });
+
+        // Step 3: Get SubCategory IDs
+        const subCategoryIds = subCategories.map(sc => sc._id);
+
+        // Step 4: Delete Products linked to these SubCategories
+        await Product.deleteMany({ subCategoryID: { $in: subCategoryIds } });
+
+        // Step 5: Delete the SubCategories
+        await SubCategory.deleteMany({ _id: { $in: subCategoryIds } });
 
         res.status(200).json({
-            message: "Category deleted",
+            message: "Category and all linked SubCategories & Products deleted successfully",
             deletedCategory
-        })
+        });
 
     } catch (error) {
-        res.status(500).json({ message: "Server Error" })
-
+        console.error("Delete Category Error:", error);
+        res.status(500).json({ message: "Server Error" });
     }
-
-}
+};
